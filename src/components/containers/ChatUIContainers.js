@@ -561,16 +561,25 @@ export default class ChatUIContainer extends Component {
     // let emojiWindow = false;
     let flag = false;
     let el = e.target;
+    
+    try {
+        
+      
 
     do {
-      if (el.nodeName === "DIV" && el.classList.contains("emojis")) {
-        console.log(el);
+      
+      if (el) {
+          if (el.nodeName === "DIV" && el.classList.contains("emojis")) {
+        
         flag = true;
         break;
       }
       if (el.getAttribute("id") === "root") {
         break;
+      }  
       }
+
+      
     } while ((el = el.parentNode));
 
     if (flag) {
@@ -585,7 +594,10 @@ export default class ChatUIContainer extends Component {
       });
 
       return;
-    }
+      }
+      } catch (error) {
+        console.log(error.message);
+      }
   };
 
   componentWillUnmount() {
