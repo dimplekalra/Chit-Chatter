@@ -51,7 +51,7 @@ export default class PrivateMessagingContainer extends Component {
 
   sendPrivateMessage = async () => {
     const privateMessageInput = this.state.privateMessageInput;
-    if (!privateMessageInput || !privateMessageInput.trim().length < 1) return;
+    if (!privateMessageInput || privateMessageInput.trim().length < 1) return;
     const recipientId = this.props.currentPrivateRecipient._id;
     const { socket } = this.props;
 
