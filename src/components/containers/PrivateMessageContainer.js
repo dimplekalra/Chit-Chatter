@@ -30,9 +30,9 @@ export default class PrivateMessagingContainer extends Component {
     });
   };
 
-  handleShownEmoji = (e) => {
+  handleShownEmoji = (val) => {
     this.setState((prevState) => {
-      return { shownEmoji: !prevState.shownEmoji };
+      return { shownEmoji: val };
     });
   };
 
@@ -46,10 +46,12 @@ export default class PrivateMessagingContainer extends Component {
     e.preventDefault();
 
     this.sendPrivateMessage();
+    this.handleShownEmoji(false);
   };
 
   sendPrivateMessage = async () => {
     const privateMessageInput = this.state.privateMessageInput;
+    if (!privateMessageInput || !privateMessageInput.trim().length < 1) return;
     const recipientId = this.props.currentPrivateRecipient._id;
     const { socket } = this.props;
 

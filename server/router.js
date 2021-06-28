@@ -40,6 +40,9 @@ module.exports = function (app) {
     "/channel/:channelName",
     chatController.getChannelConversations
   );
+
+  chatRoutes.get("/channels/list", requireAuth, chatController.getAllChannels);
+
   chatRoutes.post(
     "/postchannel/:channelName",
     requireAuth,
@@ -47,7 +50,7 @@ module.exports = function (app) {
   );
 
   apiRoutes.use("/user", userRoutes);
-
+  userRoutes.get("/list", requireAuth, userController.getAllUsers);
   userRoutes.get("/getChannels", requireAuth, userController.getChannel);
   userRoutes.post("/addchannel", requireAuth, userController.addChannel);
   userRoutes.post("/removechannel", requireAuth, userController.removeChannel);

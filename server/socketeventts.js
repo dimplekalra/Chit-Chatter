@@ -2,9 +2,7 @@
 
 module.exports = (io) => {
   io.on("connection", (socket) => {
-    console.log("user has joined");
-
-    console.log(socket.id);
+    // console.log("user has joined");
 
     socket.on("enter channel", (channel, username) => {
       if (username) {
@@ -13,7 +11,7 @@ module.exports = (io) => {
         io.sockets
           .in(channel)
           .emit("user joined", `${username} has joined the ${channel}`);
-        console.log("user has joined the channel ", channel, username);
+        // console.log("user has joined the channel ", channel, username);
       } else return false;
     });
 
@@ -23,13 +21,11 @@ module.exports = (io) => {
       io.sockets
         .in(channel)
         .emit("user left", `${username} has left the ${channel}`);
-      console.log("user has left the channel ", username, channel);
     });
 
     socket.on("new message", (msg) => {
-      console.log(msg);
       io.sockets.in(msg.channel).emit("refresh messages", msg);
-      console.log("new message is received ", msg);
+      // console.log("new message is received ", msg);
     });
 
     socket.on("enter privateMessage", (conversationId) => {

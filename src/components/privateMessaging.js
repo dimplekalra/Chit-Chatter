@@ -12,7 +12,8 @@ export default class PrivateMessaging extends Component {
     this.chatContainer = React.createRef();
   }
   scrollDown = () => {
-    this.chatContainer.current.scrollTop = this.chatContainer.current.scrollHeight;
+    this.chatContainer.current.scrollTop =
+      this.chatContainer.current.scrollHeight;
   };
 
   sendTyping = (e) => {
@@ -33,14 +34,52 @@ export default class PrivateMessaging extends Component {
     }
   };
 
+  handleEmojiOutside = (e) => {
+    // let emojiWindow = false;
+    let flag = false;
+    let el = e.target;
+
+    try {
+      do {
+        if (el) {
+          if (el.nodeName === "DIV" && el.classList.contains("emojis")) {
+            flag = true;
+            break;
+          }
+          if (
+            el.getAttribute("id") === "root" ||
+            el.nodeName === "HTML" ||
+            el.nodeName === "BODY"
+          ) {
+            break;
+          }
+        }
+      } while ((el = el.parentNode));
+
+      if (flag) {
+        this.props.handleShownEmoji(true);
+
+        return;
+      } else {
+        this.props.handleShownEmoji(false);
+
+        return;
+      }
+    } catch (error) {
+      console.log(error.message);
+    }
+  };
+
   componentDidMount() {
     this.scrollDown();
+    document.addEventListener("click", this.handleEmojiOutside);
   }
   componentDidUpdate(prevProps, prevState) {
     this.scrollDown();
   }
   componentWillUnmount() {
     this.props.userTyping(false);
+    document.removeEventListener("click", this.handleEmojiOutside);
   }
 
   render() {
@@ -161,7 +200,11 @@ export default class PrivateMessaging extends Component {
             className="row custom-input"
           >
             <div className="emojis col s1 center">
-              <div onClick={this.props.handleShownEmoji}>
+              <div
+                onClick={(e) =>
+                  this.props.handleShownEmoji(!this.props.shownEmoji)
+                }
+              >
                 <i className="material-icons small">insert_emoticon</i>
               </div>
               {this.props.shownEmoji ? (

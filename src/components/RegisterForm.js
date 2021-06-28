@@ -1,15 +1,21 @@
 import React, { useState } from "react";
 // import PropTypes from "prop-types";
-
+import Input from "../controls/Input";
 // import "@material/react-material-icon/dist/material-icon.css";
 
 import "materialize-css/dist/css/materialize.min.css";
+import { validateName, validatePassword } from "../common/validateInputs";
 const Register = (props) => {
   const [user, setUser] = useState({
     username: "",
     password: "",
   });
   const [passShow, setPasswordShow] = useState(false);
+  const [errors, setErrors] = useState({
+    username: "",
+    password: "",
+  });
+  const [isErrorThere, setIsErrorThere] = useState(false);
   const handleChange = (e) => {
     setUser({
       ...user,
@@ -17,10 +23,54 @@ const Register = (props) => {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const errorMessage = errors;
+    let isError = false;
 
-    props.userRegistration(user);
+    switch (name) {
+      case "username": {
+        const { error, message } = validateName(value);
+        if (error) {
+          errorMessage.username = message;
+          isError = true;
+        } else {
+          errorMessage.username = "";
+        }
+        break;
+      }
+
+      case "password": {
+        const { error, message } = validatePassword(value);
+
+        if (error) {
+          errorMessage.password = message;
+          isError = true;
+        } else {
+          errorMessage.password = "";
+        }
+        break;
+      }
+
+      default:
+        return;
+    }
+
+    setErrors(errorMessage);
+    setIsErrorThere(isError);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (
+      validateName(user.username).error ||
+      validatePassword(user.password).error
+    ) {
+      alert("Please fill out the fields properly");
+      return;
+    }
+
+    await props.userRegistration(user);
   };
 
   return (
@@ -33,31 +83,33 @@ const Register = (props) => {
         <h4>Register User</h4>
         <div className="row">
           <div className="input-field col s12">
-            <i className="material-icons prefix">person</i>
-            <input
+            <Input
               type="text"
-              className="validate"
+              onChange={handleChange}
               name="username"
               id="Username"
-              //placeholder=" Enter a Username"
               value={user.username}
-              onChange={handleChange}
+              important={true}
+              onBlur={handleBlur}
+              placeholder=" Enter a Username"
+              error={errors.username}
+              icon="person"
             />
-            <label htmlFor="Username">Username</label>
           </div>
 
           <div className="input-field col s12">
-            <i className="material-icons prefix">vpn_key</i>
-            <input
+            <Input
               type={`${passShow ? "text" : "password"}`}
-              className="validate"
+              onChange={handleChange}
               name="password"
               id="Password"
-              //placeholder="Enter a password"
               value={user.password}
-              onChange={handleChange}
+              important={true}
+              onBlur={handleBlur}
+              error={errors.password}
+              icon="security"
             />
-            <label htmlFor="Password">Password</label>
+
             <div
               className={`passwordShow `}
               onClick={(e) => setPasswordShow(!passShow)}
@@ -77,6 +129,7 @@ const Register = (props) => {
           ) : null}
           <button
             type="submit"
+            disabled={isErrorThere}
             className="btn waves-effect waves-light col s8 push-s2"
           >
             Submit

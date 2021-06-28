@@ -42,7 +42,10 @@ const ChatSelector = (props) => {
         </form>
         {loginError.length ? (
           <p className="red-text">
-            {loginError[loginError.length - 1].response.data.error}
+            {loginError &&
+              loginError.length &&
+              loginError[loginError.length - 1].response &&
+              loginError[loginError.length - 1].response.data.error}
           </p>
         ) : null}
       </div>

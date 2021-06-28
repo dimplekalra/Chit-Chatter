@@ -22,27 +22,17 @@ const localLogin = new localStrategy(
         });
       }
 
-      User.findOne({ password: user.password }, (err, userpass) => {
-        if (err) done(err);
+      user.comparePassword(password, (err, isMatch) => {
+        if (err) return done(err);
 
-        if (userpass === null) {
+        if (!isMatch) {
           return done(null, false, {
             error: "password is incorrect",
           });
         }
-        return done(null, userpass);
+
+        return done(null, user);
       });
-      // user.comparePassword(password, (err, isMatch) => {
-      //   if (err) return done(err);
-
-      //   if (!isMatch) {
-      //     return done(null, false, {
-      //       error: "password is incorrect",
-      //     });
-      //   }
-
-      //   return done(null, user);
-      // });
     });
   }
 );
@@ -53,7 +43,7 @@ const jwtoptions = {
 };
 
 const jwtlogin = new JwtStrategy(jwtoptions, (payload, done) => {
-  User.findById(payload._id, (err, user) => {
+  User.findById(payload._id, function (err, user) {
     if (err) return done(null, false);
 
     if (user) {

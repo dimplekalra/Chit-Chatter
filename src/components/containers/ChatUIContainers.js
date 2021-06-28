@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import LoginForm from "../LoginForm";
 import RegisterForm from "../RegisterForm";
-// import { withCookies } from 'react-cookie';
+import { withCookies } from "react-cookie";
 import axios from "axios";
 import Navigation from "../Navigation";
 import ChatBox from "../ChatBox";
@@ -15,7 +15,7 @@ import "materialize-css/dist/css/materialize.min.css";
 // const socket = io(SOCKET_URL);
 const API_URL = "http://localhost:5000/api";
 
-export default class ChatUIContainer extends Component {
+class ChatUIContainer extends Component {
   constructor(props) {
     super(props);
     this.userLogin = this.userLogin.bind(this);
@@ -49,11 +49,43 @@ export default class ChatUIContainer extends Component {
 
   componentDidMount() {
     this.initSocket();
-
+    this.hasToken();
     this.getChannelConversations();
 
     document.addEventListener("click", this.handleEmojiOutside);
   }
+
+  // If a token can be found, it will populate back the user's information on browser refresh
+  hasToken = () => {
+    const { cookies } = this.props;
+    const token = cookies.get("token");
+    const guestToken = cookies.get("guestToken");
+    const tokenUser = cookies.get("user");
+    const tokenGuestUser = cookies.get("guestUser");
+    const usersChannel = cookies.get("usersChannels");
+    const currentChannel = cookies.get("channel");
+
+    if (token) {
+      this.setState({
+        username: tokenUser.username,
+        guestUsername: "",
+        guestSignup: "",
+        id: tokenUser._id,
+        token,
+        usersChannel,
+        currentChannel: currentChannel || "Public-Main",
+        formsMethod: "",
+        formsShown: false,
+      });
+    } else if (guestToken) {
+      this.setState({
+        guestUsername: tokenGuestUser,
+        token: guestToken,
+        formsMethod: "",
+        formsShown: false,
+      });
+    }
+  };
 
   initSocket = () => {
     this.setState({
@@ -108,6 +140,17 @@ export default class ChatUIContainer extends Component {
     }
   }
 
+  // shouldComponentUpdate(nextProps, nextState) {
+  //   if (
+  //     nextState.usersChannel.length !== this.state.usersChannel.length ||
+  //     nextState.currentChannel !== this.state.currentChannel
+  //   ) {
+  //     return true;
+  //   }
+
+  //   return false;
+  // }
+
   setUsername = () => {
     const username = this.state.username;
     const guestname = this.state.guestUsername;
@@ -117,12 +160,21 @@ export default class ChatUIContainer extends Component {
   };
 
   async userLogin({ username, password }) {
+    const { cookies } = this.props;
     const currentChannel = this.state.currentChannel;
+
     const { socket } = this.props;
     try {
       const userData = await axios.post(`${API_URL}/auth/login`, {
         username,
         password,
+      });
+
+      cookies.set("token", userData.data.token, { path: "/", maxAge: 7200 });
+      cookies.set("user", userData.data.user, { path: "/", maxAge: 7200 });
+      cookies.set("usersChannels", userData.data.user.usersChannel, {
+        path: "/",
+        maxAge: 7200,
       });
 
       this.setState(
@@ -154,7 +206,15 @@ export default class ChatUIContainer extends Component {
     }
   }
   userLogout = () => {
+    const { cookies } = this.props;
     const currentChannel = this.state.currentChannel;
+    cookies.remove("token", { path: "/" });
+    cookies.remove("user", { path: "/" });
+    cookies.remove("guestToken", { path: "/" });
+    cookies.remove("guestUser", { path: "/" });
+    cookies.remove("usersChannels", { path: "/" });
+    cookies.remove("channel", { path: "/" });
+
     const { socket } = this.props;
     socket.emit("leave channel", currentChannel, this.setUsername());
 
@@ -168,16 +228,23 @@ export default class ChatUIContainer extends Component {
       token: "",
       currentChannel: "Public-Main",
       formsMethod: "login",
-      formsShown: "",
+      formsShown: true,
     });
   };
 
   userRegistration = async ({ username, password }) => {
     const currentChannel = this.state.currentChannel;
+    const { cookies } = this.props;
     const { socket } = this.props;
     await axios
       .post(`${API_URL}/auth/register`, { username, password })
       .then((res) => {
+        cookies.set("token", res.data.token, { path: "/", maxAge: 7200 });
+        cookies.set("user", res.data.user, { path: "/", maxAge: 7200 });
+        cookies.set("usersChannels", res.data.user.usersChannel, {
+          path: "/",
+          maxAge: 7200,
+        });
         this.setState(
           {
             username: res.data.user.username,
@@ -191,11 +258,13 @@ export default class ChatUIContainer extends Component {
             usersChannel: res.data.user.usersChannel,
           },
           () => {
+            // Tells the backend sockets that a user has entered a channel
             socket.emit("enter channel", currentChannel, this.setUsername());
           }
         );
       })
       .catch((err) => {
+        // Always show most recent errors
         const logerrors = Array.from(this.state.registerationError);
 
         logerrors.length = [];
@@ -207,9 +276,12 @@ export default class ChatUIContainer extends Component {
         });
       });
   };
+
+  // Guest signup, on successful POST call to our api, it returns a token and guest's data
+  // Saves the token and guestname as cookies
   async guestLogin(e) {
     e.preventDefault();
-
+    const { cookies } = this.props;
     const guestInputName = this.state.guestSignup;
     const currentChannel = this.state.currentChannel;
 
@@ -218,6 +290,15 @@ export default class ChatUIContainer extends Component {
     try {
       const guestInfo = await axios.post(`${API_URL}/auth/guestLogin`, {
         guestInputName,
+      });
+
+      cookies.set("guestToken", guestInfo.data.token, {
+        path: "/",
+        maxAge: 7200,
+      });
+      cookies.set("guestUser", guestInfo.data.guest.guestName, {
+        path: "/",
+        maxAge: 7200,
       });
 
       this.setState(
@@ -313,10 +394,13 @@ export default class ChatUIContainer extends Component {
       .catch((Err) => console.log(Err));
   };
 
-  sendMessage = (composedMessage, recipient) => {
+  sendMessage = (composedMessage, channel) => {
     const { socket } = this.props;
     const currentChannel = this.state.currentChannel;
+
     composedMessage = this.state.composedMessage;
+
+    if (!composedMessage || !composedMessage.trim().length() < 1) return;
 
     axios
       .post(
@@ -355,12 +439,17 @@ export default class ChatUIContainer extends Component {
   };
   handleSubmit = (e) => {
     e.preventDefault();
-    // console.log(this.state.composedMessage);
+
     this.sendMessage(this.state.composedMessage);
   };
 
+  // Takes a channel name and then makes a POST call to the backend API,
+  // requires a token for authorization to create a channel.
+  // On success, the new array is pushed into the user's current user channel,
+  // and saves the new channel list in cookie and refreshes channel conversations.
   createChannel = (e) => {
     const createInput = this.state.createInput;
+    const { cookies } = this.props;
     e.preventDefault();
 
     axios
@@ -374,13 +463,16 @@ export default class ChatUIContainer extends Component {
       .then((res) => {
         const updatedUserChannel = Array.from(this.state.usersChannel);
 
-        // console.log(res.data);
+        cookies.set("usersChannels", updatedUserChannel, {
+          path: "/",
+          maxAge: 7200,
+        });
 
         updatedUserChannel.push(createInput);
 
         this.setState(
           {
-            usersChannel: updatedUserChannel,
+            usersChannel: [...updatedUserChannel],
             currentChannel: createInput,
             socketConversations: [],
             createInput: "",
@@ -393,7 +485,10 @@ export default class ChatUIContainer extends Component {
       .catch((err) => console.log(err));
   };
 
+  // Takes a channel name parameter, then a POST call with authorization token to backend API,
+  // On success, cookies are set of the updated user channels
   removeChannel = async (channel) => {
+    const { cookies } = this.props;
     await axios
       .post(
         `${API_URL}/user/removechannel`,
@@ -405,6 +500,11 @@ export default class ChatUIContainer extends Component {
       .then((res) => {
         const updatedChannels = res.data.updatedChannels;
 
+        cookies.set("usersChannels", updatedChannels, {
+          path: "/",
+          maxAge: 7200,
+        });
+
         this.joinChannel("Public-Main");
         this.setState({
           socketConversations: [],
@@ -414,7 +514,11 @@ export default class ChatUIContainer extends Component {
       .catch((err) => console.log(err));
   };
 
+  // Takes a channel name parameter, saves it as a cookie, then sets the state of current channel,
+  // to that channel paramter.
   joinChannel = (channel) => {
+    const { cookies } = this.props;
+    cookies.set("channel", channel, { path: "/", maxAge: 7200 });
     this.setState(
       {
         currentChannel: channel,
@@ -426,22 +530,19 @@ export default class ChatUIContainer extends Component {
     );
   };
 
-  startConversation = (e) => {
-    const startDMInput = this.state.startDMInput;
+  startConversation = async (val) => {
+    const startDMInput = val;
     const usersDirectMessages = this.state.usersDirectMessages;
-
-    // console.log(startDMInput);
-    // console.log(usersDirectMessages);
-    e.preventDefault();
 
     const checkForCurrentConversations = usersDirectMessages.filter(
       (dm) => dm.username === startDMInput
     );
 
-    // console.log(checkForCurrentConversations);
-
-    if (!checkForCurrentConversations.length && !usersDirectMessages.length) {
-      axios
+    if (
+      checkForCurrentConversations.length === 0 ||
+      usersDirectMessages.length === 0
+    ) {
+      await axios
         .post(
           `${API_URL}/chat/new`,
           { startDMInput },
@@ -553,51 +654,42 @@ export default class ChatUIContainer extends Component {
     this.setState({
       currentPrivateRecipient: {},
     });
-
-    // console.log(this.state.currentPrivateRecipient);
   };
 
   handleEmojiOutside = (e) => {
     // let emojiWindow = false;
     let flag = false;
     let el = e.target;
-    
+
     try {
-        
-      
-
-    do {
-      
-      if (el) {
+      do {
+        if (el) {
           if (el.nodeName === "DIV" && el.classList.contains("emojis")) {
-        
-        flag = true;
-        break;
-      }
-      if (el.getAttribute("id") === "root") {
-        break;
-      }  
-      }
+            flag = true;
+            break;
+          }
+          if (el.getAttribute("id") === "root") {
+            break;
+          }
+        }
+      } while ((el = el.parentNode));
 
-      
-    } while ((el = el.parentNode));
+      if (flag) {
+        this.setState({
+          emojiWindowOpen: true,
+        });
 
-    if (flag) {
-      this.setState({
-        emojiWindowOpen: true,
-      });
+        return;
+      } else {
+        this.setState({
+          emojiWindowOpen: false,
+        });
 
-      return;
-    } else {
-      this.setState({
-        emojiWindowOpen: false,
-      });
-
-      return;
+        return;
       }
-      } catch (error) {
-        console.log(error.message);
-      }
+    } catch (error) {
+      console.log(error.message);
+    }
   };
 
   componentWillUnmount() {
@@ -660,6 +752,7 @@ export default class ChatUIContainer extends Component {
             choosePrivateMessageRecipient={this.choosePrivateMessageRecipient}
             getUsersConversations={this.getUsersConversations}
             getChannelConversations={this.getChannelConversations}
+            hasToken={this.hasToken}
             {...this.state}
           />
         ) : null}
@@ -678,4 +771,4 @@ export default class ChatUIContainer extends Component {
   }
 }
 
-// export default ChatUIContainer;
+export default withCookies(ChatUIContainer);

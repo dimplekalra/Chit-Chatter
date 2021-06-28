@@ -5,6 +5,12 @@ const express = require("express"),
   socketEvents = require("./socketeventts"),
   // cors = require("cors"),
   app = express();
+const config = require("./config/main");
+const path = require("path");
+const logger = require("morgan");
+const compress = require("compression");
+const cors = require("cors");
+const helmet = require("helmet");
 // const corsoptions = (req, callback) => {
 //   let corsoption = {
 //     origin: "*",
@@ -15,7 +21,7 @@ const express = require("express"),
 //   callback(null, corsoption);
 // };
 
-mongoose.connect("mongodb://localhost:27017/mongotube", {
+mongoose.connect(config.database, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -30,9 +36,15 @@ const server = app.listen(5000, () => {
 const io = require("socket.io").listen(server);
 
 socketEvents(io);
+app.use(logger("dev"));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(compress());
+
+app.use(helmet());
+app.use(cors());
+app.use(express.static(path.join(__dirname, "public")));
 
 // app.use(cors(corsoptions));
 app.use(function (req, res, next) {

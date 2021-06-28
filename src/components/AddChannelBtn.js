@@ -14,6 +14,11 @@ const AddChannelButton = (props) => {
     setShow(false);
   };
 
+  const create = (e) => {
+    createChannel(e);
+    closeMenu();
+  };
+
   const { handleChange, createChannel } = props;
 
   return (
@@ -21,7 +26,7 @@ const AddChannelButton = (props) => {
       {showmenu ? (
         <div className="channelSearch">
           <div className="input-field">
-            <form action="" onSubmit={createChannel}>
+            <form action="" onSubmit={create}>
               <label htmlFor="channelName">
                 <i className="material-icons">search</i>
               </label>

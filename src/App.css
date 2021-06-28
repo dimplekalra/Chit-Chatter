@@ -381,7 +381,7 @@ body .chatapp-Chatbox .custom-input input {
 .error {
   margin-top: 10px;
   margin-bottom: 10px;
-  font-size: large;
+  font-size: medium;
   font-weight: bold;
 }
 .passwordShow {

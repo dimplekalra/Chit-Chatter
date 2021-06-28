@@ -1,5 +1,25 @@
 const User = require("../models/user");
 
+exports.getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find();
+
+    if (!users)
+      return res.status(404).json({
+        error: "No Users found",
+      });
+
+    return res.status(200).json({
+      users,
+      message: "Successfull",
+    });
+  } catch (error) {
+    return res.status(422).json({
+      error: "could not load users",
+    });
+  }
+};
+
 exports.addChannel = (req, res, next) => {
   const channelToAdd = req.body.createInput;
   const username = req.user.username;
@@ -34,7 +54,7 @@ exports.addChannel = (req, res, next) => {
         });
         return next(err);
       }
-      console.log(updatedUser);
+
       res.status(200).json({
         channel: updatedUser.usersChannel,
         message: "successfully joined Channel",

@@ -6,6 +6,32 @@ const Message = require("../models/message");
 const Channel = require("../models/channel.js");
 // const conversation = require("../models/conversation");
 
+exports.getAllChannels = async (req, res, next) => {
+  try {
+    const channels = await Channel.find({});
+    if (!channels) {
+      return res.status(404).json({
+        message: "Channels not found",
+      });
+    }
+
+    if (!channels.length) {
+      return res.status(204).json({
+        channels,
+        message: "No Content Found",
+      });
+    }
+
+    return res.status(200).json({
+      channels,
+      message: "Successfull",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message,
+    });
+  }
+};
 exports.newConversation = (req, res, next) => {
   const recipient = req.body.startDMInput;
   const user = req.user;
@@ -65,7 +91,7 @@ exports.leaveConversation = function (req, res, next) {
 exports.postToChannel = (req, res, next) => {
   const channelName = req.params.channelName;
   const composedMessage = req.body.composedMessage;
-  console.log(channelName);
+
   if (!channelName) {
     res.status(422).json({
       error: "please enter valid channel name",
@@ -166,7 +192,6 @@ exports.getConversation = async (req, res, next) => {
   // }
 
   if (conversations.length === 0) {
-    console.log("sending the response");
     res.status(200).json({ message: "No Conversation Yet" });
     return res.end();
   }
@@ -192,7 +217,7 @@ exports.sendReply = (req, res, next) => {
   const privateMessage = req.body.privateMessageInput;
   const recipientId = req.body.recipientId;
   const userId = req.user._id;
-  console.log(privateMessage, recipientId, userId);
+
   Conversation.findOne(
     { participants: { $all: [userId, recipientId] } },
     (err, foundConversation) => {

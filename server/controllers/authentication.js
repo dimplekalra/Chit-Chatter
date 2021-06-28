@@ -48,7 +48,7 @@ exports.register = (req, res, next) => {
     return res.end();
   }
 
-  User.findOne({ username }, (err, existing) => {
+  User.findOne({ username }, async (err, existing) => {
     if (err) return next(err);
 
     if (existing) {
@@ -61,7 +61,7 @@ exports.register = (req, res, next) => {
       password,
     });
 
-    userRegister.save((err, user) => {
+    await userRegister.save((err, user) => {
       if (err) return next(err);
       const userInfo = setUser(user);
 
@@ -95,8 +95,6 @@ exports.guestLogin = (req, res, next) => {
       });
       return res.end();
     }
-
-    console.log(guest);
 
     res.status(200).json({
       token: generateToken({ guest }),
@@ -136,8 +134,6 @@ exports.guestSignup = (req, res, next) => {
       } else {
         guest.save((err, user) => {
           if (err) return next(err);
-
-          console.log(guest);
 
           res.status(200).send({
             token: generateToken({ guest }),

@@ -41,6 +41,7 @@ export default class ChatBox extends Component {
       socketConversations,
       composedMessage,
       username,
+      hasToken,
       guestUsername,
     } = this.props;
 
@@ -50,6 +51,8 @@ export default class ChatBox extends Component {
           {id ? (
             <ChatLists
               getUsersConversations={getUsersConversations}
+              hasToken = {hasToken}
+            
               {...this.props}
             />
           ) : null}
